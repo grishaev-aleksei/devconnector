@@ -47,20 +47,25 @@ router.post('/', passport.authenticate('jwt', {session: false}), async (req, res
     if (req.body.linkedin) profileFields.social.linkedin = req.body.linkedin;
     if (req.body.instagram) profileFields.social.instagram = req.body.instagram;
 
-    const profile = await Profile.findOne({user: req.user.id});
-    if (profile) {
-        const updatedProfile = await Profile.findOneAndUpdate(
-            {user: req.user.id},
-            {$set: profileFields},
-            {new: true});
-        res.json(updatedProfile)
-    } else {
-        const profile = await Profile.findOne({handle: profileFields.handle});
+    try {
+        const profile = await Profile.findOne({user: req.user.id});
         if (profile) {
-            errors.handle = 'that handle already exists';
-            res.status(400).json(errors);
+            const updatedProfile = await Profile.findOneAndUpdate(
+                {user: req.user.id},
+                {$set: profileFields},
+                {new: true});
+            return res.json(updatedProfile)
+        } else {
+            const profile = await Profile.findOne({handle: profileFields.handle});
+            if (profile) {
+                errors.handle = 'that handle already exists';
+                return res.status(400).json(errors);
+            }
+            const newProfile = await new Profile(profileFields).save();
+            return res.json(newProfile)
         }
-        const newProfile = await new Profile(profileFields).save()
+    } catch (e) {
+        res.json(e)
     }
 
 
